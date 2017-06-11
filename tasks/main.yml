@@ -1,0 +1,64 @@
+---
+- name: Install Python packages
+  pip:
+    name: '{{ item }}'
+    state: '{{ jupyter_package_state }}'
+    executable: '{{ jupyter_package_manager }}'
+  with_items:
+    - ipython
+    - ipykernel
+    - jupyter
+
+- name: Check if the IPython profile already exists
+  stat:
+    path: '{{ ipython_config_filename }}'
+  register: ipython_config_exists
+
+- name: Create IPython profile
+  when: not ipython_config_exists.stat.exists
+  command: ipython profile create
+  register: ipython_profile_create_output
+  args:
+    creates:
+      - '{{ ipython_config_filename }}'
+      - '{{ ipython_kernel_config_filename }}'
+
+- name: Apply IPython configs
+  block:
+    - name: IPython main config
+      template:
+        src: ipython_config.py.j2
+        dest: '{{ ipython_config_filename }}'
+        force: yes
+        mode: 0644
+    - name: IPython kernel config
+      template:
+        src: ipython_kernel_config.py.j2
+        dest: '{{ ipython_kernel_config_filename }}'
+        force: yes
+        mode: 0644
+
+- name: Generate Jupyter password
+  when: jupyter_plaintext_password != ''
+  block:
+    - name: Acquire Jupyter password hash
+      command: '{{ jupyter_python_executable }} -c "from notebook.auth import passwd; print(passwd(''{{ jupyter_plaintext_password }}''));"'
+      register: jupyter_password_output
+      no_log: yes
+      changed_when: no
+    - name: Remember Jupyter password hash
+      set_fact:
+        jupyter_password: '{{ jupyter_password_output.stdout }}'
+      changed_when: no
+
+- name: Create Jupyter profile
+  command: jupyter notebook --generate-config
+  args:
+    creates: '{{ jupyter_config_filename }}'
+
+- name: Apply Jupyter config
+  template:
+    src: jupyter_notebook_config.py.j2
+    dest: '{{ jupyter_config_filename }}'
+    mode: 0644
+    force: yes
