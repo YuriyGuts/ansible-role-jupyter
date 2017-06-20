@@ -1,5 +1,6 @@
 ---
 - name: Install Python packages
+  become: '{{ jupyter_package_manager_become }}'
   pip:
     name: '{{ item }}'
     state: '{{ jupyter_package_state }}'
@@ -31,6 +32,7 @@
         dest: '{{ ipython_config_filename }}'
         force: yes
         mode: 0644
+
     - name: IPython kernel config
       template:
         src: ipython_kernel_config.py.j2
@@ -46,6 +48,7 @@
       register: jupyter_password_output
       no_log: yes
       changed_when: no
+
     - name: Remember Jupyter password hash
       set_fact:
         jupyter_password: '{{ jupyter_password_output.stdout }}'
@@ -62,3 +65,36 @@
     dest: '{{ jupyter_config_filename }}'
     mode: 0644
     force: yes
+
+- name: Install Jupyter as a daemon
+  when: jupyter_daemon_enable
+  block:
+    - name: Find Jupyter server binary
+      command: which jupyter-notebook
+      register: jupyter_server_which_output
+      changed_when: no
+
+    - name: Initialize Jupyter server binary path
+      set_fact:
+        jupyter_daemon_executable: '{{ jupyter_server_which_output.stdout }}'
+      changed_when: no
+
+    - name: Make sure systemd directory exists
+      become: yes
+      file:
+        path: '{{ jupyter_daemon_systemd_dir }}'
+        state: directory
+
+    - name: Create systemd script
+      become: yes
+      template:
+        src: jupyter.service.j2
+        dest: '{{ jupyter_daemon_systemd_filename }}'
+        force: yes
+
+    - name: Enable Jupyter daemon
+      become: yes
+      shell: |
+        systemctl enable jupyter.service
+        systemctl daemon-reload
+        systemctl restart jupyter.service

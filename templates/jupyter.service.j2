@@ -1,0 +1,15 @@
+[Unit]
+Description=Jupyter Notebook
+
+[Service]
+Type=simple
+PIDFile={{ jupyter_daemon_pidfile }}
+ExecStart={{ jupyter_daemon_executable }} --config={{ jupyter_config_filename }}
+User={{ jupyter_daemon_user }}
+Group={{ jupyter_daemon_group }}
+WorkingDirectory={{ jupyter_daemon_document_root }}
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

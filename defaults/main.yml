@@ -6,6 +6,9 @@ jupyter_python_executable: python
 # You might have pip or pip3 on the target machine.
 jupyter_package_manager: pip
 
+# Whether to run the package manager with elevated privileges.
+jupyter_package_manager_become: no
+
 # Desired state for Jupyter-related Python packages.
 # You might want to use 'present' instead of 'latest'.
 jupyter_package_state: latest
@@ -25,3 +28,17 @@ jupyter_plaintext_password: ''
 
 # Whether to open the browser when the Jupyter server is started.
 jupyter_open_browser: no
+
+# ----------------------------------
+# Jupyter daemon settings (optional)
+# ----------------------------------
+
+# Install Jupyter as a daemon.
+jupyter_daemon_enable: no
+
+# The root directory that will be accessible in Jupyter tree.
+jupyter_daemon_document_root: '{{ ansible_env.HOME }}'
+
+# Target system user/group for running the daemon.
+jupyter_daemon_user: '{{ ansible_user }}'
+jupyter_daemon_group: '{{ ansible_user }}'
